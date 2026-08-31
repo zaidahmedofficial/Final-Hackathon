@@ -4,12 +4,12 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { PlusCircle, FileText, Search } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { mockComplaints } from "@/lib/mockData"
 import type { Complaint, User } from "@/types"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [recentComplaints, setRecentComplaints] = useState<Complaint[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const stored = localStorage.getItem("shehri_user")
@@ -19,12 +19,14 @@ export default function DashboardPage() {
       } catch {}
     }
 
-    const storedComplaints = localStorage.getItem("shehri_complaints")
-    const allComplaints = storedComplaints ? JSON.parse(storedComplaints) : mockComplaints
-    const sorted = [...allComplaints].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
-    setRecentComplaints(sorted.slice(0, 5))
+    fetch('/api/complaints?limit=5&sort=newest')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setRecentComplaints(json.data.slice(0, 5))
+        }
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   const userComplaintCount = recentComplaints.filter(
@@ -83,7 +85,11 @@ export default function DashboardPage() {
 
       <div>
         <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
-        {recentComplaints.length === 0 ? (
+        {loading ? (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">Loading...</CardContent>
+          </Card>
+        ) : recentComplaints.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground">
               No recent complaints. Be the first to report an issue!

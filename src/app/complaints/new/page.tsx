@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { mockComplaints } from "@/lib/mockData"
 import type { Complaint, User } from "@/types"
 
 const categoryOptions = [
@@ -51,15 +50,22 @@ export default function NewComplaintPage() {
     }
   }, [])
 
-  const checkDuplicate = (cat: string, ar: string) => {
+  const checkDuplicate = async (cat: string, ar: string) => {
     if (!cat || !ar) {
       setDuplicateComplaint(null)
       return
     }
-    const existing = mockComplaints.find(
-      (c) => c.category === cat && c.area === ar && (c.status === "Pending" || c.status === "In Progress")
-    )
-    setDuplicateComplaint(existing || null)
+    try {
+      const res = await fetch(`/api/complaints?category=${encodeURIComponent(cat)}&area=${encodeURIComponent(ar)}&status=Pending,In Progress`)
+      const json = await res.json()
+      if (json.success && json.data.length > 0) {
+        setDuplicateComplaint(json.data[0])
+      } else {
+        setDuplicateComplaint(null)
+      }
+    } catch {
+      setDuplicateComplaint(null)
+    }
   }
 
   const handleCategoryChange = (value: string) => {
@@ -82,39 +88,41 @@ export default function NewComplaintPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
     if (!user) return
 
     setLoading(true)
 
-    const newComplaint: Complaint = {
-      _id: Date.now().toString(),
-      title: title.trim(),
-      description: description.trim(),
-      category: category as Complaint["category"],
-      area: area as Complaint["area"],
-      status: "Pending",
-      priority: "Medium",
-      upvotes: 0,
-      createdAt: new Date().toISOString(),
-      createdBy: user.name || user.email,
+    try {
+      const res = await fetch('/api/complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          category,
+          area,
+          createdBy: user.name || user.email,
+          role: user.role
+        })
+      })
+      const json = await res.json()
+      if (!json.success) {
+        if (json.error === 'Duplicate') {
+          setDuplicateComplaint(json.data)
+        } else {
+          alert(json.error || 'Failed to submit complaint')
+        }
+        setLoading(false)
+        return
+      }
+      window.location.href = "/complaints/mine"
+    } catch {
+      alert("Something went wrong")
+      setLoading(false)
     }
-
-    mockComplaints.unshift(newComplaint)
-
-    const stored = localStorage.getItem("shehri_complaints")
-    if (stored) {
-      const all = JSON.parse(stored)
-      all.unshift(newComplaint)
-      localStorage.setItem("shehri_complaints", JSON.stringify(all))
-    } else {
-      localStorage.setItem("shehri_complaints", JSON.stringify([newComplaint]))
-    }
-
-    setLoading(false)
-    window.location.href = "/complaints/mine"
   }
 
   return (

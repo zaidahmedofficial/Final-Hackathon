@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { ComplaintCard } from "@/components/custom/complaint-card"
 import { LoadingSkeleton } from "@/components/custom/loading-skeleton"
 import { EmptyState } from "@/components/custom/empty-state"
-import { mockComplaints } from "@/lib/mockData"
 import type { Complaint, User } from "@/types"
 
 export default function MyComplaintsPage() {
@@ -25,17 +24,20 @@ export default function MyComplaintsPage() {
       } catch {}
     }
 
-    const storedComplaints = localStorage.getItem("shehri_complaints")
-    const allComplaints = storedComplaints ? JSON.parse(storedComplaints) : mockComplaints
-
-    setTimeout(() => {
-      const userComplaints = allComplaints.filter(
-        (c: Complaint) => c.createdBy === (user?.name || user?.email)
-      )
-      setComplaints(userComplaints)
-      setLoading(false)
-    }, 600)
-  }, [user])
+    fetch('/api/complaints/mine', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('shehri_token')}`
+      }
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setComplaints(json.data)
+        }
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
 
   const handleStarClick = (complaintId: string, rating: number) => {
     setFeedbackMap((prev) => ({
@@ -51,27 +53,28 @@ export default function MyComplaintsPage() {
     }))
   }
 
-  const handleFeedbackSubmit = (complaintId: string) => {
+  const handleFeedbackSubmit = async (complaintId: string) => {
     const feedback = feedbackMap[complaintId]
     if (!feedback || !feedback.rating) return
 
-    setComplaints((prev) =>
-      prev.map((c) =>
-        c._id === complaintId
-          ? { ...c, feedbackPending: false, feedbackRating: feedback.rating }
-          : c
+    const token = localStorage.getItem('shehri_token')
+    const res = await fetch(`/api/complaints/${complaintId}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ rating: feedback.rating, comment: feedback.comment })
+    })
+    const json = await res.json()
+    if (json.success) {
+      setComplaints((prev) =>
+        prev.map((c) =>
+          c._id === complaintId
+            ? { ...c, feedbackPending: false, feedbackRating: feedback.rating }
+            : c
+        )
       )
-    )
-
-    const storedComplaints = localStorage.getItem("shehri_complaints")
-    if (storedComplaints) {
-      const all = JSON.parse(storedComplaints)
-      const updated = all.map((c: Complaint) =>
-        c._id === complaintId
-          ? { ...c, feedbackPending: false, feedbackRating: feedback.rating }
-          : c
-      )
-      localStorage.setItem("shehri_complaints", JSON.stringify(updated))
     }
   }
 
