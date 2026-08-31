@@ -4,14 +4,15 @@ import { ObjectId } from 'mongodb'
 
 export const runtime = 'nodejs'
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { env } = await getCloudflareContext() as any
     const db = await getDb(env)
     const complaints = getCollection(db, 'complaints')
 
+    const { id } = await params
     const result = await complaints.findOneAndUpdate(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id) },
       { $inc: { upvotes: 1 } },
       { returnDocument: 'after' }
     )

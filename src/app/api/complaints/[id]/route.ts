@@ -4,13 +4,14 @@ import { ObjectId } from 'mongodb'
 
 export const runtime = 'nodejs'
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { env } = await getCloudflareContext() as any
     const db = await getDb(env)
     const complaints = getCollection(db, 'complaints')
 
-    const complaint = await complaints.findOne({ _id: new ObjectId(params.id) })
+    const { id } = await params
+    const complaint = await complaints.findOne({ _id: new ObjectId(id) })
     if (!complaint) {
       return Response.json({ success: false, error: 'Complaint not found' }, { status: 404 })
     }
