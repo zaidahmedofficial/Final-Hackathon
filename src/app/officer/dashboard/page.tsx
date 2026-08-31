@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { Bell } from "lucide-react"
 import { AiBriefingCard } from "@/components/custom/ai-briefing-card"
@@ -10,9 +10,8 @@ import { DataTable } from "@/components/custom/table"
 import { StatusBadge } from "@/components/custom/status-badge"
 import { PriorityBadge } from "@/components/custom/priority-badge"
 import { Button } from "@/components/ui/button"
-import { mockComplaints } from "@/lib/mockData"
-import type { Complaint } from "@/types"
 import { toast } from "sonner"
+import type { Complaint } from "@/types"
 
 const categoryColors: Record<string, string> = {
   Road: "#0F2C61",
@@ -22,34 +21,27 @@ const categoryColors: Record<string, string> = {
   Other: "#6B7280",
 }
 
-function downloadCsv(data: Complaint[]) {
-  const headers = ["_id", "title", "category", "area", "status", "priority", "upvotes", "createdAt", "createdBy"]
-  const escape = (v: unknown) => `"${String(v).replace(/"/g, '""')}"`
-  const rows = data.map((c) =>
-    [c._id, c.title, c.category, c.area, c.status, c.priority, c.upvotes, c.createdAt, c.createdBy]
-      .map(escape)
-      .join(",")
-  )
-  const csv = [headers.join(","), ...rows.map((r) => r)].join("\n")
-  const blob = new Blob([csv], { type: "text/csv" })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = "complaints.csv"
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-  toast.success("CSV downloaded successfully")
-}
-
 export default function OfficerDashboardPage() {
+  const [complaints, setComplaints] = useState<Complaint[]>([])
+  const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<FilterOptions>({
     sort: "newest",
   })
 
+  useEffect(() => {
+    fetch('/api/complaints?limit=1000')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setComplaints(json.data)
+        }
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
   const filteredComplaints = useMemo(() => {
-    let result = [...mockComplaints]
+    let result = [...complaints]
 
     if (filters.search) {
       const q = filters.search.toLowerCase()
@@ -57,7 +49,7 @@ export default function OfficerDashboardPage() {
         (c) =>
           c.title.toLowerCase().includes(q) ||
           c.description.toLowerCase().includes(q) ||
-          c.createdBy.toLowerCase().includes(q) ||
+          (c.createdBy && c.createdBy.toLowerCase().includes(q)) ||
           c._id.toLowerCase().includes(q)
       )
     }
@@ -66,26 +58,26 @@ export default function OfficerDashboardPage() {
     if (filters.area) result = result.filter((c) => c.area === filters.area)
     if (filters.priority) result = result.filter((c) => c.priority === filters.priority)
 
-    if (filters.sort === "newest") {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    } else if (filters.sort === "most-upvoted") {
+    if (filters.sort === "most-upvoted") {
       result.sort((a, b) => b.upvotes - a.upvotes)
+    } else {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     }
 
     return result
-  }, [filters])
+  }, [complaints, filters])
 
-  const pendingCount = mockComplaints.filter((c) => c.status === "Pending").length
-  const inProgressCount = mockComplaints.filter((c) => c.status === "In Progress").length
-  const resolvedCount = mockComplaints.filter((c) => c.status === "Resolved").length
+  const pendingCount = complaints.filter((c) => c.status === "Pending").length
+  const inProgressCount = complaints.filter((c) => c.status === "In Progress").length
+  const resolvedCount = complaints.filter((c) => c.status === "Resolved").length
 
   const categoryDistribution = useMemo(() => {
     const counts: Record<string, number> = {}
-    mockComplaints.forEach((c) => {
+    complaints.forEach((c) => {
       counts[c.category] = (counts[c.category] || 0) + 1
     })
     return counts
-  }, [])
+  }, [complaints])
   const maxCategoryCount = Math.max(...Object.values(categoryDistribution), 1)
 
   const columns = [
@@ -165,6 +157,28 @@ export default function OfficerDashboardPage() {
     },
   ]
 
+  const handleDownloadCsv = () => {
+    const params = new URLSearchParams()
+    if (filters.category) params.set('category', filters.category)
+    if (filters.status) params.set('status', filters.status)
+    if (filters.area) params.set('area', filters.area)
+    if (filters.priority) params.set('priority', filters.priority)
+    if (filters.search) params.set('search', filters.search)
+    window.open(`/api/complaints/export?${params.toString()}`, '_blank')
+    toast.success("CSV download started")
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Officer Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
@@ -181,7 +195,7 @@ export default function OfficerDashboardPage() {
       </AiBriefingCard>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total" value={mockComplaints.length} color="#0F2C61" />
+        <KpiCard title="Total" value={complaints.length} color="#0F2C61" />
         <KpiCard title="Pending" value={pendingCount} color="#F59E0B" />
         <KpiCard title="In Progress" value={inProgressCount} color="#3B82F6" />
         <KpiCard title="Resolved" value={resolvedCount} color="#10B981" />
@@ -192,7 +206,7 @@ export default function OfficerDashboardPage() {
           <FilterBar
             filters={filters}
             onFilterChange={setFilters}
-            onDownloadCsv={() => downloadCsv(filteredComplaints)}
+            onDownloadCsv={handleDownloadCsv}
           />
         </div>
         <div className="rounded-lg border border-border bg-card p-5 shadow-sm">

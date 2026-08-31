@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import Link from "next/link"
 import { ArrowUp } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -9,26 +9,25 @@ import { PriorityBadge } from "@/components/custom/priority-badge"
 import { StatusBadge } from "@/components/custom/status-badge"
 import { StatusStepper } from "@/components/custom/status-stepper"
 import { UpvoteButton } from "@/components/custom/upvote-button"
-import { getComplaintById } from "@/lib/mockData"
 import type { Complaint } from "@/types"
 
-export default function ComplaintDetailPage({ params }: { params: { id: string } }) {
+export default function ComplaintDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [complaint, setComplaint] = useState<Complaint | null>(null)
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem("shehri_complaints")
-    const allComplaints = stored ? JSON.parse(stored) : undefined
-    const found = allComplaints
-      ? allComplaints.find((c: Complaint) => c._id === params.id)
-      : getComplaintById(params.id)
-
-    if (found) {
-      setComplaint(found)
-    } else {
-      setNotFound(true)
-    }
-  }, [params.id])
+    fetch(`/api/complaints/${id}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setComplaint(json.data)
+        } else {
+          setNotFound(true)
+        }
+      })
+      .catch(() => setNotFound(true))
+  }, [id])
 
   if (notFound) {
     return (
