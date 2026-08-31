@@ -3,8 +3,6 @@
 import { useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Navbar } from "@/components/custom/navbar"
-import { Footer } from "@/components/custom/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
@@ -37,50 +35,44 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-
-      <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl">Login</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && <p className="text-sm text-critical">{error}</p>}
-              <Input
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-              />
-              <Input
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-              />
-              <Button type="submit" className="w-full">
-                Login
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-primary font-medium hover:underline">
-                Sign Up
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
-      </main>
-
-      <Footer />
-    </div>
+    <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-center text-2xl">Login</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && <p className="text-sm text-critical">{error}</p>}
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              required
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
+            <Button type="submit" className="w-full">
+              Login
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-primary font-medium hover:underline">
+              Sign Up
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </main>
   )
 }

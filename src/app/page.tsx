@@ -1,9 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { Navbar } from "@/components/custom/navbar"
-import { Footer } from "@/components/custom/footer"
 import { ComplaintCard } from "@/components/custom/complaint-card"
 import { Button } from "@/components/ui/button"
 import { mockComplaints } from "@/lib/mockData"
@@ -12,10 +9,8 @@ export default function Home() {
   const recentComplaints = mockComplaints.slice(0, 3)
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-
-      <main className="flex-1">
+    <>
+      <main>
         <section className="bg-primary py-16 sm:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
@@ -57,8 +52,6 @@ export default function Home() {
           </div>
         </section>
       </main>
-
-      <Footer />
-    </div>
+    </>
   )
 }

@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Home, FileText, PlusCircle, BarChart3, Menu, X } from "lucide-react"
+import { Home, FileText, PlusCircle, BarChart3, Menu, X, Moon, Sun, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useTheme } from "@/components/theme-provider"
 import type { User } from "@/types"
 
 const citizenLinks = [
@@ -24,6 +25,7 @@ export function Sidebar() {
   const [user, setUser] = useState<User | null>(null)
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     const stored = localStorage.getItem("shehri_user")
@@ -35,6 +37,13 @@ export function Sidebar() {
   }, [])
 
   const links = user?.role === "officer" ? officerLinks : citizenLinks
+
+  const handleClearData = () => {
+    if (confirm("Are you sure you want to clear all complaint data? This cannot be undone.")) {
+      localStorage.removeItem("shehri_complaints")
+      window.location.reload()
+    }
+  }
 
   return (
     <>
@@ -76,6 +85,22 @@ export function Sidebar() {
                   </Link>
                 )
               })}
+              <div className="border-t border-border my-2 pt-2">
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-full"
+                >
+                  {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  {theme === "light" ? "Dark Mode" : "Light Mode"}
+                </button>
+                <button
+                  onClick={handleClearData}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-critical hover:bg-critical/10 transition-colors w-full"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear All Data
+                </button>
+              </div>
             </nav>
           </div>
         </div>
@@ -106,8 +131,22 @@ export function Sidebar() {
             )
           })}
         </nav>
-        <div className="border-t border-border p-4">
-          <p className="text-xs text-muted-foreground">
+        <div className="border-t border-border p-4 space-y-2">
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-full"
+          >
+            {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            {theme === "light" ? "Dark Mode" : "Light Mode"}
+          </button>
+          <button
+            onClick={handleClearData}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-critical hover:bg-critical/10 transition-colors w-full"
+          >
+            <Trash2 className="h-4 w-4" />
+            Clear All Data
+          </button>
+          <p className="text-xs text-muted-foreground pt-2">
             KMC Helpdesk: 1339
           </p>
         </div>
