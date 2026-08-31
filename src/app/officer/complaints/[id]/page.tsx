@@ -10,8 +10,6 @@ import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/custom/status-badge"
 import { PriorityBadge } from "@/components/custom/priority-badge"
 import { EmptyState } from "@/components/custom/empty-state"
-import { mockComplaints } from "@/lib/mockData"
-import { getComplaintById } from "@/lib/mockData"
 import type { Complaint } from "@/types"
 import { toast } from "sonner"
 
@@ -23,20 +21,59 @@ const statusOptions = [
 
 export default function OfficerReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const [complaint, setComplaint] = useState<ReturnType<typeof getComplaintById>>()
+  const [complaint, setComplaint] = useState<Complaint | null>(null)
   const [status, setStatus] = useState<string>("")
   const [remark, setRemark] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    const data = getComplaintById(id)
-    if (data) {
-      setComplaint(data)
-      setStatus(data.status)
-      setRemark(data.officerRemark || "")
-    }
+    fetch(`/api/complaints/${id}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setComplaint(json.data)
+          setStatus(json.data.status)
+          setRemark(json.data.officerRemark || "")
+        }
+      })
   }, [id])
+
+  const handleUpdate = async () => {
+    setError("")
+    if (!status) {
+      setError("Please select a status")
+      return
+    }
+    if (status === "Resolved" && !remark.trim()) {
+      setError("Please add a remark before marking as resolved")
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const res = await fetch(`/api/complaints/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, officerRemark: remark })
+      })
+      const json = await res.json()
+      if (json.success) {
+        setComplaint(json.data)
+        toast.success("Complaint updated successfully")
+        setTimeout(() => {
+          window.location.href = "/officer/dashboard"
+        }, 1000)
+      } else {
+        setError(json.error || 'Update failed')
+      }
+    } catch {
+      setError("Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!complaint) {
     return (
@@ -55,35 +92,6 @@ export default function OfficerReviewPage({ params }: { params: Promise<{ id: st
         />
       </div>
     )
-  }
-
-  const handleUpdate = () => {
-    setError("")
-    if (!status) {
-      setError("Please select a status")
-      return
-    }
-    if (status === "Resolved" && !remark.trim()) {
-      setError("Please add a remark before marking as resolved")
-      return
-    }
-
-    setLoading(true)
-
-    setTimeout(() => {
-      const index = mockComplaints.findIndex((c) => c._id === complaint._id)
-      if (index !== -1) {
-        mockComplaints[index] = {
-          ...mockComplaints[index],
-          status: status as Complaint["status"],
-          officerRemark: remark.trim() || undefined,
-        }
-      }
-      toast.success("Complaint updated successfully")
-      setTimeout(() => {
-        window.location.href = "/officer/dashboard"
-      }, 1000)
-    }, 300)
   }
 
   const daysOpen = Math.floor(
