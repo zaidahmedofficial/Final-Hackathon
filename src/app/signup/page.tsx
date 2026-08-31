@@ -42,6 +42,7 @@ export default function SignupPage() {
         return
       }
       localStorage.setItem("shehri_user", JSON.stringify(json.data.user))
+      localStorage.setItem("shehri_token", json.data.token)
       router.push("/dashboard")
     } catch {
       setError("Something went wrong")

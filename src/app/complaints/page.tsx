@@ -6,60 +6,37 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { FilterBar, type FilterOptions } from "@/components/custom/filter-bar"
 import { ComplaintCard } from "@/components/custom/complaint-card"
 import { EmptyState } from "@/components/custom/empty-state"
-import { mockComplaints } from "@/lib/mockData"
 import type { Complaint } from "@/types"
 
 export default function ComplaintsPage() {
   const [complaints, setComplaints] = useState<Complaint[]>([])
   const [filters, setFilters] = useState<FilterOptions>({})
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const stored = localStorage.getItem("shehri_complaints")
-    const allComplaints = stored ? JSON.parse(stored) : mockComplaints
-    setComplaints(allComplaints)
-  }, [])
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (filters.category) params.set('category', filters.category)
+    if (filters.status) params.set('status', filters.status)
+    if (filters.area) params.set('area', filters.area)
+    if (filters.priority) params.set('priority', filters.priority)
+    if (filters.search) params.set('search', filters.search)
+    if (filters.sort) params.set('sort', filters.sort)
 
-  const filteredComplaints = useMemo(() => {
-    let result = [...complaints]
-
-    if (filters.search) {
-      const q = filters.search.toLowerCase()
-      result = result.filter(
-        (c) =>
-          c.title.toLowerCase().includes(q) ||
-          c.description.toLowerCase().includes(q) ||
-          c.area.toLowerCase().includes(q)
-      )
-    }
-
-    if (filters.category) {
-      result = result.filter((c) => c.category === filters.category)
-    }
-
-    if (filters.status) {
-      result = result.filter((c) => c.status === filters.status)
-    }
-
-    if (filters.area) {
-      result = result.filter((c) => c.area === filters.area)
-    }
-
-    if (filters.priority) {
-      result = result.filter((c) => c.priority === filters.priority)
-    }
-
-    if (filters.sort === "most-upvoted") {
-      result.sort((a, b) => b.upvotes - a.upvotes)
-    } else {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    }
-
-    return result
-  }, [complaints, filters])
+    fetch(`/api/complaints?${params.toString()}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setComplaints(json.data)
+        }
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [filters])
 
   const handleDownloadCsv = () => {
     const headers = ["Title", "Category", "Area", "Status", "Priority", "Upvotes", "Date"]
-    const rows = filteredComplaints.map((c) => [
+    const rows = complaints.map((c) => [
       c.title,
       c.category,
       c.area,
@@ -93,14 +70,16 @@ export default function ComplaintsPage() {
         </CardContent>
       </Card>
 
-      {filteredComplaints.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12 text-muted-foreground">Loading...</div>
+      ) : complaints.length === 0 ? (
         <EmptyState
           title="No complaints found"
           description="Try adjusting your filters or search terms."
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredComplaints.map((complaint) => (
+          {complaints.map((complaint) => (
             <ComplaintCard key={complaint._id} complaint={complaint} />
           ))}
         </div>
