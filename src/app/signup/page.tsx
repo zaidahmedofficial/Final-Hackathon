@@ -15,26 +15,39 @@ export default function SignupPage() {
   const [password, setPassword] = useState("")
   const [role, setRole] = useState("citizen")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError("")
+    setLoading(true)
 
     if (!name || !email || !password) {
       setError("Please fill in all fields")
+      setLoading(false)
       return
     }
 
-    const user: User = {
-      _id: Date.now().toString(),
-      name,
-      email,
-      role: role as User["role"],
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role })
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setError(json.error || 'Signup failed')
+        setLoading(false)
+        return
+      }
+      localStorage.setItem("shehri_user", JSON.stringify(json.data.user))
+      router.push("/dashboard")
+    } catch {
+      setError("Something went wrong")
+    } finally {
+      setLoading(false)
     }
-
-    localStorage.setItem("shehri_user", JSON.stringify(user))
-    router.push("/dashboard")
   }
 
   return (
@@ -79,7 +92,7 @@ export default function SignupPage() {
                 { value: "officer", label: "Officer" },
               ]}
             />
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" loading={loading}>
               Sign Up
             </Button>
           </form>
