@@ -1,0 +1,20 @@
+{
+  "name": "citizen-portal",
+  "compatibility_date": "2025-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "not_found_handling": "single-page-application"
+  },
+  "hyperdrive": [
+    {
+      "binding": "MONGODB",
+      "id": "REPLACE_AFTER_CREATING_HYPERDRIVE_IN_DASHBOARD",
+      "localConnectionString": "mongodb+srv://username:password@cluster.mongodb.net/citizen_portal?retryWrites=true&w=majority"
+    }
+  ],
+  "vars": {
+    "JWT_SECRET": "change_this_to_32_char_random_string",
+    "NODE_ENV": "production"
+  }
+}
